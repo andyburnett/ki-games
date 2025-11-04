@@ -37,6 +37,7 @@ class KIGamesInvaders extends HTMLElement {
             invaderDirection: 1, // 1 for right, -1 for left
             updateCounter: 0, // Used to slow down invader movement
             isGameOver: false,
+            win: false, // Added win state for clarity
         };
 
         // Bind event handlers
@@ -47,9 +48,11 @@ class KIGamesInvaders extends HTMLElement {
 
     // Called when the element is added to the document's DOM
     connectedCallback() {
-        this.render();
+        // Ensure rendering happens first to set up the DOM elements (canvas and overlay)
+        this.render(); 
         this.initGame();
         this.setupEventListeners();
+        // Start the game loop
         this.state.gameLoop = requestAnimationFrame(this.gameLoop);
     }
 
@@ -77,6 +80,9 @@ class KIGamesInvaders extends HTMLElement {
                 }
                 canvas {
                     display: block;
+                    /* Ensure canvas is always visible and takes up the space */
+                    width: 100%;
+                    height: 100%;
                 }
                 #overlay {
                     position: absolute;
@@ -92,6 +98,7 @@ class KIGamesInvaders extends HTMLElement {
                     align-items: center;
                     text-align: center;
                     font-size: 24px;
+                    z-index: 10; /* Ensure overlay is above canvas */
                 }
                 #overlay button {
                     padding: 10px 20px;
@@ -101,6 +108,7 @@ class KIGamesInvaders extends HTMLElement {
                     color: #000000;
                     font-size: 20px;
                     cursor: pointer;
+                    border-radius: 4px;
                 }
             </style>
             <canvas id="gameCanvas" width="${GAME_WIDTH}" height="${GAME_HEIGHT}"></canvas>
@@ -112,6 +120,7 @@ class KIGamesInvaders extends HTMLElement {
     }
 
     initGame() {
+        // Reset all state variables for a new game
         this.state.player.x = GAME_WIDTH / 2;
         this.state.player.lives = 3;
         this.state.score = 0;
@@ -120,7 +129,10 @@ class KIGamesInvaders extends HTMLElement {
         this.state.invaderDirection = 1;
         this.state.isGameOver = false;
         this.state.isPaused = false;
+        this.state.win = false;
+
         this.createInvaders();
+        // Crucial: Hide the overlay after initialization to show the game
         this.hideOverlay();
     }
 
@@ -144,7 +156,6 @@ class KIGamesInvaders extends HTMLElement {
     // --- INPUT HANDLING ---
 
     setupEventListeners() {
-        // Attach to the document for global input handling
         document.addEventListener('keydown', this.handleKeyDown);
         document.addEventListener('keyup', this.handleKeyUp);
     }
@@ -181,17 +192,19 @@ class KIGamesInvaders extends HTMLElement {
     // --- GAME LOGIC & UPDATE ---
 
     gameLoop() {
+        // Only run update and draw if the game is active
         if (!this.state.isPaused && !this.state.isGameOver) {
             this.update();
             this.draw();
         } else if (this.state.isGameOver) {
              this.draw();
-             this.showGameOver();
+             this.showGameOver(); // Show game over screen
         } else if (this.state.isPaused) {
              this.draw();
-             this.showPause();
+             this.showPause(); // Show pause screen
         }
 
+        // Request next frame regardless of state to keep the loop alive
         this.state.gameLoop = requestAnimationFrame(this.gameLoop);
     }
 
@@ -321,9 +334,11 @@ class KIGamesInvaders extends HTMLElement {
 
     draw() {
         const ctx = this.ctx;
+        // 1. Clear the canvas background
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+        // 2. Draw all game elements
         this.drawPlayer(ctx);
         this.drawInvaders(ctx);
         this.drawBullets(ctx);
@@ -389,8 +404,11 @@ class KIGamesInvaders extends HTMLElement {
         `;
     }
 
+    // Hides the overlay, making the canvas visible.
     hideOverlay() {
-        this.overlay.style.display = 'none';
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
     }
 
     togglePause() {
